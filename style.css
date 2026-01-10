@@ -1,0 +1,16 @@
+:root{--bg:#0b1220;--panel:rgba(255,255,255,.07);--line:rgba(255,255,255,.12);--text:#eaf0ff;--muted:rgba(234,240,255,.72);--accent:#ff7a00}
+*{box-sizing:border-box} body{margin:0;font-family:system-ui;background:var(--bg);color:var(--text)}
+.wrap{max-width:980px;margin:0 auto;padding:18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;margin:12px 0}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+input,select,textarea{background:rgba(0,0,0,.18);border:1px solid var(--line);color:var(--text);border-radius:12px;padding:10px 12px;outline:none}
+textarea{min-height:80px;resize:vertical;width:100%}
+.btn{cursor:pointer;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.08);color:var(--text);padding:10px 12px;font-weight:800}
+.btn.primary{background:rgba(255,122,0,.25);border-color:rgba(255,122,0,.45)}
+.badge{padding:6px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:800px){.grid{grid-template-columns:1fr}}
+.item{padding:12px;border:1px solid var(--line);border-radius:14px;background:rgba(0,0,0,.18);margin-top:10px}
+h1{margin:0 0 8px}
+.muted{color:var(--muted)}
+.hidden{display:none !important}
