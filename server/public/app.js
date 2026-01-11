@@ -1,3 +1,6 @@
+console.log("APP.JS LOADED ✅");
+window.addEventListener("error", (e) => console.log("JS ERROR ❌", e.message));
+
 const API = "https://eurotransonline.onrender.com"; // same domain (Render all-in-one
 const API = API_BASE.replace(/\/$/, "");
 
