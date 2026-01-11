@@ -5,6 +5,16 @@ import jwt from "jsonwebtoken";
 import path from "path";
 import { fileURLToPath } from "url";
 import { openDb, run, get, all } from "./db.js";
+import cors from "cors";
+
+app.use(cors({
+  origin: [
+    "http://wh29650.web4.maze-tech.ru",
+    "http://wh29650.web4.maze-tech.ru"
+  ],
+  credentials: true
+}));
+
 
 dotenv.config();
 
