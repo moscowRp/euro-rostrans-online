@@ -7,18 +7,20 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { openDb, run, get, all } from "./db.js";
 
+dotenv.config();
 
 const app = express();
 app.use(express.json({ limit: "1mb" }));
-const ORIGIN = process.env.CORS_ORIGIN || "*";
 
+// CORS (если Maze Host + Render)
+const ORIGIN = process.env.CORS_ORIGIN || "*";
 app.use(cors({
   origin: ORIGIN === "*" ? "*" : [ORIGIN],
   methods: ["GET","POST","PATCH","DELETE","OPTIONS"],
   allowedHeaders: ["Content-Type","Authorization"],
 }));
-
 app.options("*", cors());
+
 
 
 dotenv.config();
