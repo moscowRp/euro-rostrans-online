@@ -535,3 +535,11 @@ async function init(){
 }
 
 init();
+
+document.addEventListener("DOMContentLoaded", () => {
+  const b1 = document.getElementById("loginBtn");
+  const b2 = document.getElementById("regBtn");
+  if (b1) b1.onclick = () => alert("LOGIN CLICK ✅");
+  if (b2) b2.onclick = () => alert("REGISTER CLICK ✅");
+});
+
