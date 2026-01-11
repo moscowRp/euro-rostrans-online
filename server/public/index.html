@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>ЕвроРосТранс — кабинет</title>
+  <link rel="stylesheet" href="./style.css"/>
+</head>
+<body>
+  <div class="bg"></div>
+
+  <div class="auth-screen" id="authScreen">
+    <div class="auth-card">
+      <div class="auth-head">
+        <div class="logo">ERT</div>
+        <div>
+          <h1>ЕвроРосТранс</h1>
+          <p class="muted">Регистрация и авторизация</p>
+        </div>
+      </div>
+
+      <div class="auth-tabs">
+        <button class="seg active" id="segLogin">Вход</button>
+        <button class="seg" id="segReg">Регистрация</button>
+      </div>
+
+      <div id="loginPane">
+        <label class="lbl">Почта или ник</label>
+        <input id="loginLogin" placeholder="name@mail.com или Nick" />
+
+        <label class="lbl">Пароль</label>
+        <input id="loginPass" type="password" placeholder="••••••" />
+
+        <button class="btn primary full" id="loginBtn">Войти</button>
+        <p class="muted small">Если забыл пароль — сделаем позже восстановление.</p>
+      </div>
+
+      <div id="regPane" class="hidden">
+        <div class="grid2">
+          <div>
+            <label class="lbl">Ник</label>
+            <input id="regNick" placeholder="Напр. DriverMax" />
+          </div>
+          <div>
+            <label class="lbl">Почта</label>
+            <input id="regEmail" placeholder="name@mail.com" />
+          </div>
+        </div>
+
+        <label class="lbl">Аватар (ссылка, необязательно)</label>
+        <input id="regAva" placeholder="https://..." />
+
+        <div class="grid2">
+          <div>
+            <label class="lbl">Пароль</label>
+            <input id="regPass" type="password" placeholder="минимум 6 символов" />
+          </div>
+          <div>
+            <label class="lbl">Роль</label>
+            <select id="regRole">
+              <option value="DRIVER">Водитель</option>
+              <option value="LOGIST">Логист</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="logistCodeWrap" class="hidden">
+          <label class="lbl">Код логиста</label>
+          <input id="regLogistCode" placeholder="только для логиста" />
+        </div>
+
+        <button class="btn primary full" id="regBtn">Создать аккаунт</button>
+        <p class="muted small">Роль «Логист» доступна только по коду.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap hidden" id="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo sm">ERT</div>
+        <div>
+          <div class="ttl">ЕвроРосТранс</div>
+          <div class="muted small" id="who">—</div>
+        </div>
+      </div>
+      <div class="row">
+        <button class="btn" id="logoutBtn">Выйти</button>
+      </div>
+    </header>
+
+    <nav class="tabs">
+      <button class="tab active" data-tab="anketa">Анкета</button>
+      <button class="tab" data-tab="zayavki" id="zayavkiTab">Заявки</button>
+      <button class="tab" data-tab="profile">Профиль</button>
+    </nav>
+
+    <section class="card" id="tab-anketa">
+      <div class="head">
+        <h2>Анкета рейса</h2>
+        <div class="muted small">Создание заявки</div>
+      </div>
+      <div class="body">
+        <div class="grid3">
+          <select id="type">
+            <option value="ЗАГРУЗКА">ЗАГРУЗКА</option>
+            <option value="РАЗГРУЗКА">РАЗГРУЗКА</option>
+          </select>
+          <input id="from" placeholder="Откуда" />
+          <input id="to" placeholder="Куда" />
+          <input id="cargo" placeholder="Груз (опционально)" />
+          <select id="truck">
+            <option value="">— Грузовик —</option>
+            <option>Scania G400</option>
+            <option>Scania R 2016</option>
+            <option>Scania R500</option>
+            <option>КАМАЗ 5490 Neo</option>
+            <option>КАМАЗ 5490 Neo (бензовоз)</option>
+            <option>КАМАЗ 54901</option>
+            <option>MAN TGX Euro 5</option>
+            <option>MAN TGX Euro 6</option>
+            <option>MAN TGX 2020</option>
+            <option>Mercedes Actros MP3</option>
+            <option>Mercedes Actros MP4</option>
+            <option>Mercedes Actros L 2023</option>
+            <option>Volvo FH16 2012</option>
+            <option>Volvo FH 2022</option>
+            <option>Renault T 2019</option>
+            <option>DAF XG+ 2023</option>
+          </select>
+          <input id="km" type="number" min="0" step="1" placeholder="Км" />
+          <input id="dateFrom" type="date" />
+          <input id="dateTo" type="date" />
+          <input id="road" type="number" min="1" max="5" placeholder="Дороги 1-5" />
+          <input id="client" type="number" min="1" max="5" placeholder="Клиент 1-5" />
+          <input id="route" type="number" min="1" max="5" placeholder="Маршрут 1-5" />
+        </div>
+
+        <div class="muted small" id="trailerHint">Прицеп: —</div>
+        <textarea id="note" placeholder="Комментарий (опционально)"></textarea>
+
+        <div class="row">
+          <button class="btn primary" id="createBtn">💾 Отправить заявку</button>
+        </div>
+
+        <div class="divider"></div>
+
+        <h3 class="h3">Мои заявки</h3>
+        <div class="filters">
+          <input id="searchMine" placeholder="Поиск..." />
+          <select id="filterTypeMine">
+            <option value="ALL">Все типы</option>
+            <option value="ЗАГРУЗКА">ЗАГРУЗКА</option>
+            <option value="РАЗГРУЗКА">РАЗГРУЗКА</option>
+          </select>
+          <select id="filterStatusMine">
+            <option value="ALL">Все статусы</option>
+            <option value="PENDING">На рассмотрении</option>
+            <option value="APPROVED">Принято</option>
+            <option value="REJECTED">Отказано</option>
+          </select>
+        </div>
+        <div id="mineList"></div>
+      </div>
+    </section>
+
+    <section class="card hidden" id="tab-zayavki">
+      <div class="head">
+        <h2>Заявки</h2>
+        <div class="muted small">Только для логистов</div>
+      </div>
+      <div class="body">
+        <div class="filters">
+          <input id="searchAll" placeholder="Поиск (водитель/почта/маршрут)..." />
+          <select id="filterTypeAll">
+            <option value="ALL">Все типы</option>
+            <option value="ЗАГРУЗКА">ЗАГРУЗКА</option>
+            <option value="РАЗГРУЗКА">РАЗГРУЗКА</option>
+          </select>
+          <select id="filterStatusAll">
+            <option value="ALL">Все статусы</option>
+            <option value="PENDING">На рассмотрении</option>
+            <option value="APPROVED">Принято</option>
+            <option value="REJECTED">Отказано</option>
+          </select>
+          <button class="btn" id="refreshAll">Обновить</button>
+        </div>
+        <div id="allList"></div>
+      </div>
+    </section>
+
+    <section class="card hidden" id="tab-profile">
+      <div class="head">
+        <h2>Профиль</h2>
+        <div class="muted small">Данные аккаунта</div>
+      </div>
+      <div class="body profile">
+        <img id="pAva" class="ava" alt="ava" />
+        <div>
+          <div class="pName" id="pNick">—</div>
+          <div class="muted" id="pEmail">—</div>
+          <div class="muted small" id="pRole">—</div>
+        </div>
+      </div>
+      <div class="body">
+        <p class="muted small">Регистрация выполнена через почту. Позже добавим смену пароля и восстановление.</p>
+      </div>
+    </section>
+
+    <div class="toast hidden" id="toast"></div>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
