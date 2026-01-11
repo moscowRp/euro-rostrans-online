@@ -32,9 +32,6 @@ const DB_PATH = process.env.DB_PATH || "./data.sqlite";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const app = express();
-app.use(express.json({ limit: "1mb" }));
-
 const db = openDb(DB_PATH);
 
 function nowIso() { return new Date().toISOString(); }
