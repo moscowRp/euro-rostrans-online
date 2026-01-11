@@ -5,8 +5,11 @@ import jwt from "jsonwebtoken";
 import path from "path";
 import { fileURLToPath } from "url";
 import { openDb, run, get, all } from "./db.js";
+import express from "express";
 import cors from "cors";
 
+const app = express();
+app.use(express.json({ limit: "1mb" }));
 const ORIGIN = process.env.CORS_ORIGIN || "*";
 
 app.use(cors({
@@ -14,8 +17,8 @@ app.use(cors({
   methods: ["GET","POST","PATCH","DELETE","OPTIONS"],
   allowedHeaders: ["Content-Type","Authorization"],
 }));
-app.options("*", cors());
 
+app.options("*", cors());
 
 
 dotenv.config();
