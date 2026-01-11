@@ -1,4 +1,4 @@
-const API = ""; // same domain (Render all-in-one)
+const API = "https://eurotransonline.onrender.com"; // same domain (Render all-in-one)
 
 const $ = (id) => document.getElementById(id);
 
