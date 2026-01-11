@@ -12,16 +12,11 @@ dotenv.config();
 const app = express();
 app.use(express.json({ limit: "1mb" }));
 
-// CORS (если Maze Host + Render)
-const ORIGIN = process.env.CORS_ORIGIN || "*";
 app.use(cors({
-  origin: ORIGIN === "*" ? "*" : [ORIGIN],
+  origin: "https://wh29650.web4.maze-tech.ru",
   methods: ["GET","POST","PATCH","DELETE","OPTIONS"],
-  allowedHeaders: ["Content-Type","Authorization"],
+  allowedHeaders: ["Content-Type","Authorization"]
 }));
-app.options("*", cors());
-
-
 
 dotenv.config();
 
