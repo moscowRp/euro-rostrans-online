@@ -1,5 +1,7 @@
-const API = "https://eurotransonline.onrender.com"; // same domain (Render all-in-one)
+const API = "https://eurotransonline.onrender.com"; // same domain (Render all-in-one
+const API = API_BASE.replace(/\/$/, "");
 
+// ====== HELPERS ======
 const $ = (id) => document.getElementById(id);
 
 function setToken(t){ localStorage.setItem("token", t); }
@@ -7,16 +9,38 @@ function getToken(){ return localStorage.getItem("token"); }
 function clearToken(){ localStorage.removeItem("token"); }
 
 function setUser(u){ localStorage.setItem("user", JSON.stringify(u)); }
-function getUser(){ try{ return JSON.parse(localStorage.getItem("user")||"null"); }catch{ return null; } }
+function getUser(){ try{ return JSON.parse(localStorage.getItem("user")||"null"); } catch { return null; } }
 function clearUser(){ localStorage.removeItem("user"); }
 
-async function api(path, opts = {}){
-  const headers = { "Content-Type": "application/json", ...(opts.headers||{}) };
+async function api(path, opts = {}) {
+  const headers = { ...(opts.headers || {}) };
+
+  // body -> JSON string
+  if (opts.body !== undefined && typeof opts.body !== "string") {
+    headers["Content-Type"] = "application/json";
+    opts.body = JSON.stringify(opts.body);
+  } else {
+    headers["Content-Type"] = headers["Content-Type"] || "application/json";
+  }
+
   const token = getToken();
-  if(token) headers.Authorization = "Bearer " + token;
-  const res = await fetch(API + path, { ...opts, headers });
-  const data = await res.json().catch(()=> ({}));
-  if(!res.ok){
+  if (token) headers.Authorization = "Bearer " + token;
+
+  const url = API + path;
+
+  let res;
+  try {
+    res = await fetch(url, { ...opts, headers });
+  } catch (e) {
+    const err = new Error("NETWORK_ERROR");
+    err.code = "NETWORK_ERROR";
+    throw err;
+  }
+
+  let data = {};
+  try { data = await res.json(); } catch {}
+
+  if (!res.ok) {
     const err = new Error(data.error || "API_ERROR");
     err.code = data.error || "API_ERROR";
     throw err;
@@ -27,6 +51,7 @@ async function api(path, opts = {}){
 let toastTimer = null;
 function toast(msg){
   const t = $("toast");
+  if(!t) return;
   t.textContent = msg;
   t.classList.remove("hidden");
   clearTimeout(toastTimer);
@@ -43,6 +68,7 @@ function roleText(r){
   return r==="LOGIST" ? "Логист" : "Водитель";
 }
 
+// прицеп по грузовику (как раньше)
 function currentTrailer(truck){
   const trailers = {
     "Scania G400":"НефАЗ 96895",
@@ -66,27 +92,50 @@ function currentTrailer(truck){
 }
 
 function calcScore(){
-  const r = Number($("road").value || 0);
-  const c = Number($("client").value || 0);
-  const m = Number($("route").value || 0);
+  const r = Number($("road")?.value || 0);
+  const c = Number($("client")?.value || 0);
+  const m = Number($("route")?.value || 0);
   const arr = [r,c,m].filter(x => x>=1 && x<=5);
   if(!arr.length) return 0;
   return Math.round((arr.reduce((a,b)=>a+b,0)/arr.length)*10)/10;
 }
 
+// ====== UI SHOW/HIDE ======
 function showApp(){
-  $("authScreen").classList.add("hidden");
-  $("app").classList.remove("hidden");
+  $("authScreen")?.classList.add("hidden");
+  $("app")?.classList.remove("hidden");
 }
 function showAuth(){
-  $("authScreen").classList.remove("hidden");
-  $("app").classList.add("hidden");
+  $("authScreen")?.classList.remove("hidden");
+  $("app")?.classList.add("hidden");
 }
 
 function renderHeader(){
   const u = getUser();
-  $("who").textContent = u ? `${u.nickname} • ${u.email} • ${roleText(u.role)}` : "—";
-  $("zayavkiTab").classList.toggle("hidden", u?.role !== "LOGIST");
+  if ($("who")) $("who").textContent = u ? `${u.nickname} • ${u.email} • ${roleText(u.role)}` : "—";
+  // вкладка "Заявки" только логисту
+  $("zayavkiTab")?.classList.toggle("hidden", u?.role !== "LOGIST");
+}
+
+function renderProfile(){
+  const u = getUser();
+  if(!u) return;
+
+  const fallback =
+    "data:image/svg+xml;base64," +
+    btoa(
+      `<svg xmlns='http://www.w3.org/2000/svg' width='128' height='128'>
+         <rect width='100%' height='100%' fill='#111827'/>
+         <text x='50%' y='55%' font-size='52' text-anchor='middle' fill='#ff7a00' font-family='Arial'>
+           ${(u.nickname||"U").slice(0,1).toUpperCase()}
+         </text>
+       </svg>`
+    );
+
+  if ($("pAva")) $("pAva").src = (u.avatar_url && String(u.avatar_url).startsWith("http")) ? u.avatar_url : fallback;
+  if ($("pNick")) $("pNick").textContent = u.nickname || "—";
+  if ($("pEmail")) $("pEmail").textContent = u.email || "—";
+  if ($("pRole")) $("pRole").textContent = "Роль: " + roleText(u.role);
 }
 
 function setTab(name){
@@ -94,19 +143,16 @@ function setTab(name){
     b.classList.toggle("active", b.dataset.tab === name);
   });
   ["anketa","zayavki","profile"].forEach(t=>{
-    $("tab-"+t).classList.toggle("hidden", t !== name);
+    const el = $("tab-"+t);
+    if (el) el.classList.toggle("hidden", t !== name);
   });
+
+  // ✅ запуск/остановка моментальных заявок
+  if (name === "zayavki") startAllAutoRefresh();
+  else stopAllAutoRefresh();
 }
 
-function renderProfile(){
-  const u = getUser();
-  const fallback = "data:image/svg+xml;base64," + btoa(`<svg xmlns='http://www.w3.org/2000/svg' width='128' height='128'><rect width='100%' height='100%' fill='#111827'/><text x='50%' y='55%' font-size='52' text-anchor='middle' fill='#ff7a00' font-family='Arial'>${(u?.nickname||"U").slice(0,1).toUpperCase()}</text></svg>`);
-  $("pAva").src = (u?.avatar_url && u.avatar_url.startsWith("http")) ? u.avatar_url : fallback;
-  $("pNick").textContent = u?.nickname || "—";
-  $("pEmail").textContent = u?.email || "—";
-  $("pRole").textContent = "Роль: " + roleText(u?.role);
-}
-
+// ====== RENDER ITEMS ======
 function itemHtml(r, forLogist){
   const badges = `
     <span class="badge ${statusClass(r.status)}">📋 ${statusText(r.status)}</span>
@@ -115,8 +161,9 @@ function itemHtml(r, forLogist){
   `;
   const driver = forLogist ? `
     <div class="muted small" style="margin-top:6px;">
-      Водитель: <b>${r.driver_nick}</b> • ${r.driver_email}
+      Водитель: <b>${r.driver_nick || "—"}</b> • ${r.driver_email || "—"}
     </div>` : "";
+
   const actions = forLogist ? `
     <div class="row" style="margin-top:10px;">
       <button class="btn" data-act="approve" data-id="${r.id}">✅ Принять</button>
@@ -124,6 +171,7 @@ function itemHtml(r, forLogist){
       <button class="btn" data-act="pending" data-id="${r.id}">⏳ На рассм.</button>
       <button class="btn" data-act="delete" data-id="${r.id}">🗑️ Удалить</button>
     </div>` : "";
+
   return `
     <div class="item">
       <div class="badges">${badges}</div>
@@ -140,83 +188,138 @@ function itemHtml(r, forLogist){
   `;
 }
 
+// ====== LOAD LISTS ======
 async function loadMine(){
-  const q = $("searchMine").value.trim();
-  const type = $("filterTypeMine").value;
-  const status = $("filterStatusMine").value;
-  const res = await api(`/api/reports?q=${encodeURIComponent(q)}&type=${encodeURIComponent(type)}&status=${encodeURIComponent(status)}`);
-  const box = $("mineList");
-  box.innerHTML = "";
-  if(!res.reports?.length){
-    box.innerHTML = `<div class="muted small">Нет заявок</div>`;
-    return;
+  const q = $("searchMine")?.value?.trim() || "";
+  const type = $("filterTypeMine")?.value || "ALL";
+  const status = $("filterStatusMine")?.value || "ALL";
+
+  try{
+    const res = await api(`/api/reports?q=${encodeURIComponent(q)}&type=${encodeURIComponent(type)}&status=${encodeURIComponent(status)}`);
+    const box = $("mineList");
+    if(!box) return;
+
+    box.innerHTML = "";
+    if(!res.reports?.length){
+      box.innerHTML = `<div class="muted small">Нет заявок</div>`;
+      return;
+    }
+    box.innerHTML = res.reports.map(r => itemHtml(r, false)).join("");
+  }catch(e){
+    toast("Ошибка: " + (e.code || "LOAD_MINE"));
   }
-  box.innerHTML = res.reports.map(r => itemHtml(r, false)).join("");
 }
 
 async function loadAll(){
-  const q = $("searchAll").value.trim();
-  const type = $("filterTypeAll").value;
-  const status = $("filterStatusAll").value;
-  const res = await api(`/api/reports?q=${encodeURIComponent(q)}&type=${encodeURIComponent(type)}&status=${encodeURIComponent(status)}`);
-  const box = $("allList");
-  box.innerHTML = "";
-  if(!res.reports?.length){
-    box.innerHTML = `<div class="muted small">Нет заявок</div>`;
-    return;
-  }
-  box.innerHTML = res.reports.map(r => itemHtml(r, true)).join("");
+  const u = getUser();
+  if(u?.role !== "LOGIST") return;
 
-  box.querySelectorAll("button[data-act]").forEach(btn=>{
-    btn.onclick = async () => {
-      const id = btn.dataset.id;
-      const act = btn.dataset.act;
-      try{
-        if(act === "delete"){
-          if(!confirm("Удалить заявку?")) return;
-          await api(`/api/reports/${id}`, { method:"DELETE" });
-          toast("Удалено 🗑️");
-        } else {
-          const st = act === "approve" ? "APPROVED" : act === "reject" ? "REJECTED" : "PENDING";
-          await api(`/api/reports/${id}/status`, { method:"PATCH", body: JSON.stringify({ status: st }) });
-          toast("Статус обновлён ✅");
+  const q = $("searchAll")?.value?.trim() || "";
+  const type = $("filterTypeAll")?.value || "ALL";
+  const status = $("filterStatusAll")?.value || "ALL";
+
+  try{
+    const res = await api(`/api/reports?q=${encodeURIComponent(q)}&type=${encodeURIComponent(type)}&status=${encodeURIComponent(status)}`);
+    const box = $("allList");
+    if(!box) return;
+
+    box.innerHTML = "";
+    if(!res.reports?.length){
+      box.innerHTML = `<div class="muted small">Нет заявок</div>`;
+      return;
+    }
+
+    box.innerHTML = res.reports.map(r => itemHtml(r, true)).join("");
+
+    // кнопки логиста
+    box.querySelectorAll("button[data-act]").forEach(btn=>{
+      btn.onclick = async () => {
+        const id = btn.dataset.id;
+        const act = btn.dataset.act;
+        try{
+          if(act === "delete"){
+            if(!confirm("Удалить заявку?")) return;
+            await api(`/api/reports/${id}`, { method:"DELETE" });
+            toast("Удалено 🗑️");
+          } else {
+            const st = act === "approve" ? "APPROVED" : act === "reject" ? "REJECTED" : "PENDING";
+            await api(`/api/reports/${id}/status`, { method:"PATCH", body: { status: st } });
+            toast("Статус обновлён ✅");
+          }
+          await loadAll();
+        }catch(e){
+          toast("Ошибка: " + (e.code || "UPDATE"));
         }
-        await loadAll();
-      }catch(e){
-        toast("Ошибка: " + e.code);
-      }
-    };
-  });
+      };
+    });
+
+  }catch(e){
+    toast("Ошибка: " + (e.code || "LOAD_ALL"));
+  }
 }
 
+// ====== AUTO REFRESH (ВАРИАНТ 1) ======
+let allTimer = null;
+
+function startAllAutoRefresh(){
+  const u = getUser();
+  if(u?.role !== "LOGIST") return;
+
+  // если уже запущено — не запускаем снова
+  if(allTimer) return;
+
+  // сразу грузим
+  loadAll();
+
+  // каждые 3 секунды
+  allTimer = setInterval(() => {
+    // автообновление только если вкладка "Заявки" реально открыта
+    const tab = document.querySelector(".tab.active")?.dataset?.tab;
+    if(tab === "zayavki") loadAll();
+  }, 3000);
+
+  toast("Автообновление заявок: ВКЛ ✅");
+}
+
+function stopAllAutoRefresh(){
+  if(allTimer){
+    clearInterval(allTimer);
+    allTimer = null;
+    // не спамим тостами при каждом переключении, но можно оставить:
+    // toast("Автообновление заявок: ВЫК");
+  }
+}
+
+// ====== CREATE REPORT ======
 async function createReport(){
-  const truck = $("truck").value;
+  const truck = $("truck")?.value || "";
   const payload = {
-    type: $("type").value,
-    from_city: $("from").value.trim(),
-    to_city: $("to").value.trim(),
-    cargo: $("cargo").value.trim(),
+    type: $("type")?.value || "ЗАГРУЗКА",
+    from_city: $("from")?.value?.trim() || "",
+    to_city: $("to")?.value?.trim() || "",
+    cargo: $("cargo")?.value?.trim() || "",
     truck,
     trailer: currentTrailer(truck),
-    km: Number($("km").value || 0) || 0,
-    date_from: $("dateFrom").value || null,
-    date_to: $("dateTo").value || null,
+    km: Number($("km")?.value || 0) || 0,
+    date_from: $("dateFrom")?.value || null,
+    date_to: $("dateTo")?.value || null,
     score: calcScore(),
-    note: $("note").value.trim()
+    note: $("note")?.value?.trim() || ""
   };
 
   try{
-    await api("/api/reports", { method:"POST", body: JSON.stringify(payload) });
+    await api("/api/reports", { method:"POST", body: payload });
     toast("Заявка отправлена ✅");
-    $("note").value = "";
+    if ($("note")) $("note").value = "";
     await loadMine();
-    const u = getUser();
-    if(u?.role === "LOGIST") await loadAll();
+    // если логист сидит в заявках — обновим сразу
+    if(getUser()?.role === "LOGIST") await loadAll();
   }catch(e){
-    toast("Ошибка: " + e.code);
+    toast("Ошибка: " + (e.code || "CREATE_REPORT"));
   }
 }
 
+// ====== AUTH ======
 async function refreshMe(){
   const token = getToken();
   if(!token) return false;
@@ -231,38 +334,38 @@ async function refreshMe(){
 }
 
 async function doLogin(){
-  const login = $("loginLogin").value.trim();
-  const password = $("loginPass").value;
+  const login = $("loginLogin")?.value?.trim() || "";
+  const password = $("loginPass")?.value || "";
   try{
-    const r = await api("/api/auth/login", { method:"POST", body: JSON.stringify({ login, password }) });
+    const r = await api("/api/auth/login", { method:"POST", body: { login, password } });
     setToken(r.token);
     setUser(r.user);
     toast("Вход ✅");
     await afterAuth();
   }catch(e){
-    toast("Ошибка: " + e.code);
+    toast("Ошибка: " + (e.code || "LOGIN"));
   }
 }
 
 async function doRegister(){
-  const nickname = $("regNick").value.trim();
-  const email = $("regEmail").value.trim();
-  const avatar_url = $("regAva").value.trim();
-  const password = $("regPass").value;
-  const role = $("regRole").value;
-  const logist_code = $("regLogistCode").value.trim();
+  const nickname = $("regNick")?.value?.trim() || "";
+  const email = $("regEmail")?.value?.trim() || "";
+  const avatar_url = $("regAva")?.value?.trim() || "";
+  const password = $("regPass")?.value || "";
+  const role = $("regRole")?.value || "DRIVER";
+  const logist_code = $("regLogistCode")?.value?.trim() || "";
 
   try{
     const r = await api("/api/auth/register", {
       method:"POST",
-      body: JSON.stringify({ email, nickname, password, avatar_url, role, logist_code })
+      body: { email, nickname, password, avatar_url, role, logist_code }
     });
     setToken(r.token);
     setUser(r.user);
     toast("Аккаунт создан ✅");
     await afterAuth();
   }catch(e){
-    toast("Ошибка: " + e.code);
+    toast("Ошибка: " + (e.code || "REGISTER"));
   }
 }
 
@@ -272,69 +375,89 @@ async function afterAuth(){
   showApp();
   setTab("anketa");
 
-  $("trailerHint").textContent = "Прицеп: " + currentTrailer($("truck").value);
+  if ($("trailerHint")) $("trailerHint").textContent = "Прицеп: " + currentTrailer($("truck")?.value || "");
   await loadMine();
-  const u = getUser();
-  if(u?.role === "LOGIST"){ await loadAll(); }
+  if(getUser()?.role === "LOGIST"){
+    await loadAll();
+  }
 }
 
+// ====== BIND UI ======
 function bindUI(){
-  $("segLogin").onclick = () => {
+  // auth switch
+  $("segLogin")?.addEventListener("click", () => {
     $("segLogin").classList.add("active");
     $("segReg").classList.remove("active");
     $("loginPane").classList.remove("hidden");
     $("regPane").classList.add("hidden");
-  };
-  $("segReg").onclick = () => {
+  });
+  $("segReg")?.addEventListener("click", () => {
     $("segReg").classList.add("active");
     $("segLogin").classList.remove("active");
     $("regPane").classList.remove("hidden");
     $("loginPane").classList.add("hidden");
-  };
+  });
 
-  $("regRole").onchange = () => {
+  // role -> logist code
+  $("regRole")?.addEventListener("change", () => {
     const isLogist = $("regRole").value === "LOGIST";
-    $("logistCodeWrap").classList.toggle("hidden", !isLogist);
-  };
-  $("regRole").dispatchEvent(new Event("change"));
+    $("logistCodeWrap")?.classList.toggle("hidden", !isLogist);
+  });
+  $("regRole")?.dispatchEvent(new Event("change"));
 
-  $("loginBtn").onclick = doLogin;
-  $("regBtn").onclick = doRegister;
+  $("loginBtn")?.addEventListener("click", doLogin);
+  $("regBtn")?.addEventListener("click", doRegister);
 
-  $("logoutBtn").onclick = () => {
+  $("logoutBtn")?.addEventListener("click", () => {
     clearToken(); clearUser();
+    stopAllAutoRefresh();
     showAuth();
     toast("Вы вышли");
-  };
+  });
 
+  // tabs
   document.querySelectorAll(".tab").forEach(b=>{
-    b.onclick = async () => {
+    b.addEventListener("click", async () => {
       const name = b.dataset.tab;
       setTab(name);
       if(name === "profile") renderProfile();
       if(name === "anketa") await loadMine();
       if(name === "zayavki") await loadAll();
-    };
+    });
   });
 
-  $("truck").onchange = () => $("trailerHint").textContent = "Прицеп: " + currentTrailer($("truck").value);
-  $("createBtn").onclick = createReport;
+  // truck hint
+  $("truck")?.addEventListener("change", () => {
+    if ($("trailerHint")) $("trailerHint").textContent = "Прицеп: " + currentTrailer($("truck").value);
+  });
 
-  $("searchMine").oninput = () => loadMine();
-  $("filterTypeMine").onchange = () => loadMine();
-  $("filterStatusMine").onchange = () => loadMine();
+  $("createBtn")?.addEventListener("click", createReport);
 
-  $("searchAll").oninput = () => loadAll();
-  $("filterTypeAll").onchange = () => loadAll();
-  $("filterStatusAll").onchange = () => loadAll();
-  $("refreshAll").onclick = () => loadAll();
+  // filters
+  $("searchMine")?.addEventListener("input", loadMine);
+  $("filterTypeMine")?.addEventListener("change", loadMine);
+  $("filterStatusMine")?.addEventListener("change", loadMine);
+
+  $("searchAll")?.addEventListener("input", loadAll);
+  $("filterTypeAll")?.addEventListener("change", loadAll);
+  $("filterStatusAll")?.addEventListener("change", loadAll);
+  $("refreshAll")?.addEventListener("click", loadAll);
 }
 
+// ====== INIT ======
 async function init(){
   bindUI();
+
+  // быстрый тест: сервер жив?
+  // (если хочешь — можно убрать)
+  try { await api("/api/health"); } catch {}
+
   const ok = await refreshMe();
-  if(ok) await afterAuth();
-  else showAuth();
+  if(ok){
+    await afterAuth();
+  }else{
+    showAuth();
+  }
 }
 
 init();
