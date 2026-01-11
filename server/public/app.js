@@ -387,19 +387,90 @@ async function afterAuth(){
 
 // ====== BIND UI ======
 function bindUI(){
-  // auth switch
-  $("segLogin")?.addEventListener("click", () => {
-    $("segLogin").classList.add("active");
-    $("segReg").classList.remove("active");
-    $("loginPane").classList.remove("hidden");
-    $("regPane").classList.add("hidden");
+  // делаем клики через делегирование: работает даже если ID отличаются
+  document.addEventListener("click", async (e) => {
+    const t = e.target;
+
+    // переключение вкладок "Вход/Регистрация"
+    if (t.id === "segLogin" || t.textContent?.trim() === "Вход") {
+      document.getElementById("segLogin")?.classList.add("active");
+      document.getElementById("segReg")?.classList.remove("active");
+      document.getElementById("loginPane")?.classList.remove("hidden");
+      document.getElementById("regPane")?.classList.add("hidden");
+    }
+
+    if (t.id === "segReg" || t.textContent?.trim() === "Регистрация") {
+      document.getElementById("segReg")?.classList.add("active");
+      document.getElementById("segLogin")?.classList.remove("active");
+      document.getElementById("regPane")?.classList.remove("hidden");
+      document.getElementById("loginPane")?.classList.add("hidden");
+    }
+
+    // ВОЙТИ
+    if (t.id === "loginBtn" || t.textContent?.trim() === "Войти") {
+      await doLogin();
+    }
+
+    // СОЗДАТЬ АККАУНТ
+    if (t.id === "regBtn" || t.textContent?.trim() === "Создать аккаунт" || t.textContent?.trim() === "Создать аккаунт") {
+      await doRegister();
+    }
+
+    // ВЫЙТИ
+    if (t.id === "logoutBtn" || t.textContent?.trim() === "Выйти") {
+      clearToken(); clearUser();
+      stopAllAutoRefresh?.();
+      showAuth();
+      toast("Вы вышли");
+    }
+
+    // вкладки приложения
+    if (t.classList?.contains("tab")) {
+      const name = t.dataset.tab;
+      if (!name) return;
+      setTab(name);
+      if (name === "profile") renderProfile();
+      if (name === "anketa") await loadMine();
+      if (name === "zayavki") await loadAll();
+    }
+
+    // отправить заявку
+    if (t.id === "createBtn" || t.textContent?.includes("Отправить заявку")) {
+      await createReport();
+    }
+
+    // обновить заявки (логист)
+    if (t.id === "refreshAll" || t.textContent?.trim() === "Обновить") {
+      await loadAll();
+    }
   });
-  $("segReg")?.addEventListener("click", () => {
-    $("segReg").classList.add("active");
-    $("segLogin").classList.remove("active");
-    $("regPane").classList.remove("hidden");
-    $("loginPane").classList.add("hidden");
+
+  // поле кода логиста показываем при выборе роли
+  const regRole = document.getElementById("regRole");
+  if (regRole) {
+    regRole.addEventListener("change", () => {
+      const isLogist = regRole.value === "LOGIST";
+      document.getElementById("logistCodeWrap")?.classList.toggle("hidden", !isLogist);
+    });
+    regRole.dispatchEvent(new Event("change"));
+  }
+
+  // фильтры
+  document.getElementById("searchMine")?.addEventListener("input", loadMine);
+  document.getElementById("filterTypeMine")?.addEventListener("change", loadMine);
+  document.getElementById("filterStatusMine")?.addEventListener("change", loadMine);
+
+  document.getElementById("searchAll")?.addEventListener("input", loadAll);
+  document.getElementById("filterTypeAll")?.addEventListener("change", loadAll);
+  document.getElementById("filterStatusAll")?.addEventListener("change", loadAll);
+
+  // грузовик → прицеп
+  document.getElementById("truck")?.addEventListener("change", () => {
+    const tr = currentTrailer(document.getElementById("truck").value);
+    const hint = document.getElementById("trailerHint");
+    if (hint) hint.textContent = "Прицеп: " + tr;
   });
+}
 
   // role -> logist code
   $("regRole")?.addEventListener("change", () => {
