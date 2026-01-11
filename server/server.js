@@ -7,13 +7,15 @@ import { fileURLToPath } from "url";
 import { openDb, run, get, all } from "./db.js";
 import cors from "cors";
 
+const ORIGIN = process.env.CORS_ORIGIN || "*";
+
 app.use(cors({
-  origin: [
-    "http://wh29650.web4.maze-tech.ru",
-    "http://wh29650.web4.maze-tech.ru"
-  ],
-  credentials: true
+  origin: ORIGIN === "*" ? "*" : [ORIGIN],
+  methods: ["GET","POST","PATCH","DELETE","OPTIONS"],
+  allowedHeaders: ["Content-Type","Authorization"],
 }));
+app.options("*", cors());
+
 
 
 dotenv.config();
